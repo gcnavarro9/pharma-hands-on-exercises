@@ -222,10 +222,140 @@ dm_allcomb
 
 ## Challenges: Take the following actions to match with the Demographic table.
 
-1.  Reorder the age variables to be in the correct order (<65, 65-80, >80)
+```{r}
+#1.  Reorder the age variables to be in the correct order (<65, 65-80, >80)
 
-2.  Move N before Age- categories.
+age_cat <- age_cat %>%
+  dplyr::mutate(category = factor(category,
+                    levels = c("<65", "65-80", ">80")))
+age_cat1<- age_cat %>%
+  arrange(category)
 
-3.  Add Ethnicity and Race.
+dm_allcomb1 <- bind_rows(age_cat1, agestat_cat)  
+dm_allcomb1
+
+```
+```{r 2.  Move N before Age- categories.}
+dm_allcomb_v1 <- bind_rows(dm_allcomb[4,], dm_allcomb[1:3,], dm_allcomb[5:8,])
+dm_allcomb_v1
+
+```
+
+
+```{r 3.  Add Ethnicity and Race.}
+#ETHNICITY
+
+ethnic_N_cnt <- adsl_eff %>%
+  group_by( TRT01AN, TRT01A,  ETHNIC ) %>%
+  count(name = "ethnic_total")
+
+ethnic_n_cnt <- adsl_eff %>%
+  group_by(TRT01AN, TRT01A, SEX, ETHNIC) %>%
+  count(name = "eth_n")
+
+ethnic_mrg_cnt <- ethnic_n_cnt %>% 
+  left_join(ethnic_N_cnt, 
+            by = c("TRT01AN", "TRT01A", "ETHNIC"))
+
+
+ethnic_mrg_cnt2 <- ethnic_mrg_cnt %>% 
+  left_join(Big_N_cnt, 
+            by = c("TRT01AN", "TRT01A"))
+
+
+ethnic_mrg_cnt3 <- ethnic_mrg_cnt2 %>% 
+  left_join(small_n_cnt, 
+            by = c("TRT01A", "TRT01AN", "SEX"))
+
+ethnic_mrg_cnt3 <- ungroup(ethnic_mrg_cnt3)
+
+ethnic_data_new <- ethnic_mrg_cnt3 %>% 
+  mutate(perc_tot = round((ethnic_total/N)*100, 1)) %>%                 
+  mutate(perc_age = round((eth_n/n)*100,1))
+
+ethnic_pct <- ethnic_data_new %>%
+  mutate(perc_tchar = format(perc_tot, nsmall = 1)) %>%
+  mutate(perc_achar = format(perc_age, nsmall = 1))
+
+
+ethnic_n_pct <- ethnic_pct %>%
+  mutate(npct = paste(eth_n, paste0("(", perc_achar, ")"))) %>% 
+  select(TRT01A, ETHNIC, SEX, npct)
+
+ethnic_n_pct
+
+ethnic_trans <- pivot_wider(ethnic_n_pct, 
+                         names_from = c(TRT01A,SEX), 
+                         values_from = npct, 
+                         values_fill = "NA",
+                         names_sep = "_")
+
+
+ethnic_cat <- rename(ethnic_trans, category=ETHNIC)
+
+ethnic_cat %>%
+  arrange(category)
+
+```
+```{r}
+#RACE
+
+race_N_cnt <- adsl_eff %>%
+  group_by( TRT01AN, TRT01A,  RACE ) %>%
+  count(name = "race_total")
+
+race_n_cnt <- adsl_eff %>%
+  group_by(TRT01AN, TRT01A, SEX, RACE) %>%
+  count(name = "race_n")
+
+race_mrg_cnt <- race_n_cnt %>% 
+  left_join(race_N_cnt, 
+            by = c("TRT01AN", "TRT01A", "RACE"))
+
+
+race_mrg_cnt2 <- race_mrg_cnt %>% 
+  left_join(Big_N_cnt, 
+            by = c("TRT01AN", "TRT01A"))
+
+
+race_mrg_cnt3 <- race_mrg_cnt2 %>% 
+  left_join(small_n_cnt, 
+            by = c("TRT01A", "TRT01AN", "SEX"))
+
+race_mrg_cnt3 <- ungroup(race_mrg_cnt3)
+
+race_data_new <- race_mrg_cnt3 %>% 
+  mutate(perc_tot = round((race_total/N)*100, 1)) %>%                 
+  mutate(perc_age = round((race_n/n)*100,1))
+
+race_pct <- race_data_new %>%
+  mutate(perc_tchar = format(perc_tot, nsmall = 1)) %>%
+  mutate(perc_achar = format(perc_age, nsmall = 1))
+
+
+race_n_pct <- race_pct %>%
+  mutate(npct = paste(race_n, paste0("(", perc_achar, ")"))) %>% 
+  select(TRT01A, RACE, SEX, npct)
+
+
+race_trans <- pivot_wider(race_n_pct, 
+                         names_from = c(TRT01A,SEX), 
+                         values_from = npct, 
+                         values_fill = "NA",
+                         names_sep = "_")
+
+
+race_cat <- rename(race_trans, category=RACE)
+
+race_cat %>%
+  arrange(category)
+
+```
+
+```{r}
+all <- bind_rows(age_cat1, agestat_cat, ethnic_cat, race_cat)  
+all
+
+```
 
 Save the .RMD file on your desktop and click on the "Knit" button at the top of the file to render an HTML version of this document.
