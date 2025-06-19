@@ -54,8 +54,8 @@ First, let's show a spaghetti plot of ALT measurements over time (profiles for e
 We're also going to use the `A1LO` and `A1HI` columns to make a shaded region showing the normal range of values for ALT. The `alpha` argument makes this shaded region more transparent. We want to draw the shaded `geom_ribbon` area ***once***, (rather than superimposing the `A1LO` and `A1HI` values from the dataset (which are repeated for every subject). We use the function `uniqueVal` which we defined earlier to pick out a single value for the normal range minimum and maximum values.
 
 ```{r, warning = FALSE}
-ALTmin <- uniqueVal(ALT2$A1LO)[1]
-ALTmax <- uniqueVal(ALT2$A1HI)[1]
+ALTmin <- ALT2$A1LO[1]
+ALTmax <- ALT2$A1HI[1]
 
 plot1 <- ALT2 %>%
   ggplot(mapping = aes(x=ADY, y=LBSTRESN  )) +
@@ -118,7 +118,7 @@ Now let's add data on top of the boxplots. We can do this quite easily using `ge
 ```{r}
 ALT2 %>%
   filter(WEEK %in% c(0, 5, 10, 15, 20, 25, 30)) %>%
-  ggplot( ) +
+  ggplot(mapping = aes(x = as.factor(WEEK), y = LBSTRESN)) +
   geom_boxplot( ) +
   geom_point( )
 ```
@@ -127,9 +127,9 @@ It might be more useful to spread out the points a little so that we can see ind
 
 ```{r}
 plot2b <- ALT2 %>%
-  filter( ) %>%
-  ggplot(mapping = aes(x = , y = )) +
-  geom_boxplot(  ) +
+  filter(WEEK %in% c(0, 5, 10, 15, 20, 25, 30)) %>%
+  ggplot(mapping = aes(x = as.factor(WEEK), y = LBSTRESN)) +
+  geom_boxplot(outlier.shape=NA) +
   geom_jitter(alpha = 0.2, width = 0.1)
 
 plot2b
@@ -182,7 +182,7 @@ Use the "Data visualization with ggplot2" Cheat Sheet (from the Help menu in RSt
 ```{r}
 ALT2 %>%
   ggplot() +
-  geom_bar(mapping = aes( ))
+  geom_bar(mapping = aes(x = as.factor(WEEK), fill=LBNRIND ))
 ```
 
 Most individuals have Lab measurements on weeks 2, 4, 6, 8, 16, 24, 26. Let's filter the data to show JUST those weeks.
@@ -225,15 +225,16 @@ As we did in the last mini project, we can now take plots `plot1b` and `plot2b` 
 
 ```{r}
 plot1e <- plot1b +
-  labs(x =  ,
-       y =   )
+  labs(x ="Analysis Day",
+       y ="Lab Results")
 
 plot2c <- plot2b +
-  labs(x =  , y =   )
+  labs(x = "WEEK" , y =  "Lab Results" )
 
 plot3c <- plot3b +
-  labs(x =  ,
-       y =  )
+  labs(x ="WEEK"  ,
+       y ="FREQUENCY")
+
 ```
 
 ## 7. Using `{patchwork}`
@@ -291,5 +292,17 @@ knitr::include_graphics(path = "img/MiniProject6_challenge.png")
 ```
 
 ```{r}
-sessioninfo::session_info()
+library(ggdist)
+plot_1 <- ALT2 %>% 
+  filter(WEEK %in% c(0, 1, 2, 4, 8, 16)) %>%
+  group_by(as.factor(WEEK)) %>% 
+  ggplot(mapping = aes(x = LBSTRESN, 
+                       y = as.factor(WEEK))) +
+  coord_cartesian(xlim=c(0, 150)) +
+  stat_pointinterval() +
+  geom_point(data=filter(ALT2, LBNRIND %in% c('LOW', 'HIGH') & WEEK %in% c(0, 1, 2, 4, 8, 16)), color="red") +
+  labs(x = 'Alanine Aminotransferase U/L', y = 'Week')
+
+ggdraw(plot_1) + 
+  draw_label("DRAFT", color = "grey", alpha=0.3, size = 90, angle = 45) 
 ```
