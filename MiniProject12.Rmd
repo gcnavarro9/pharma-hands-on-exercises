@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rio)
 library(testthat)
+
+adsl_data <- import("https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt")
 ```
 
 ## Introduction
@@ -141,24 +143,27 @@ calculate_Big_N_cnt <- function(adsl_data) {
     count(name = "N")
   return(Big_N_cnt)
 }
+
+Big_N_cnt<-calculate_Big_N_cnt(wrangle_data(adsl_data))
+calculate_Big_N_cnt(wrangle_data(adsl_data))
 ```
 
 Now add some code to turn the lines of code below into the `calculate_small_n_cnt` function that takes in `adsl_data` argument. Remember to `return()` the `small_n_cnt.`
 
 ```{r}
-
+calculate_small_n_cnt <- function(adsl_data) {
   small_n_cnt <-  adsl_data  %>%
   group_by( TRT01AN, TRT01A,  SEX ) %>%
   count(name = "n")
-  small_n_cnt
-
+  return(small_n_cnt)
+}
+small_n_cnt<-calculate_small_n_cnt(wrangle_data(adsl_data))
+calculate_small_n_cnt(wrangle_data(adsl_data))
 ```
 
 And now let's transform the code below into the `adsl_counts`function. Remember, this function will take the output of the two functions above as arguments.
 
 ```{r}
- 
-
   adsl_mrg_cnt <- small_n_cnt %>%
     left_join(Big_N_cnt, by = c("TRT01A", "TRT01AN")) %>%
     mutate(perc = round((n/N)*100, digits=1)) %>%
@@ -166,9 +171,6 @@ And now let's transform the code below into the `adsl_counts`function. Remember,
     select(TRT01A, SEX, perc) 
   
   adsl_mrg_cnt
-
-
-
 ```
 
 ## Writing tests
@@ -246,7 +248,7 @@ test_that("wrangle_data() output is correct", {
   
   expect_success(expect_equal(unique(adsl_data$SAFFL), "Y"))
   expect_success(expect_equal(sum(is.na(adsl_data$SAFFL)), 0))
-  expect_success(expect_length(names(adsl_data), 5))
+  expect_success(expect_length(names(adsl_data), 6))
 })
 ```
 
@@ -274,7 +276,7 @@ When running the code, we received a value of `3` which is what we would expect 
 
 ```{r}
 test_that("expected columns are all present in the wrangle_data() output", {
-  expect_equal( , )
+  expect_equal(sum(expected_vars %in% names(adsl_data)) ,3)
 
 })
 ```
@@ -344,8 +346,9 @@ Let's not forget about the `calculate_small_n_cnt` function that we created earl
 
 ```{r}
 test_that("calculate_small_n_cnt() output has expected dim, columns, and types", {
-   expect_named( , )
-   expect_equal( , )
+   expect_named(calculate_small_n_cnt(test_data), c("TRT01AN", "TRT01A", "SEX", "n"))
+   expect_equal(dim(calculate_small_n_cnt(test_data)),
+                c(length(unique(c(calculate_small_n_cnt(test_data)$TRT01A,calculate_small_n_cnt(test_data)$SEX))), 4))
 })
 
 ```
@@ -526,7 +529,18 @@ adsl_test_data
 
 ```{r}
 # TODO Create test cases for adsl_counts()
-
+test_that("adsl_counts() produces correct output", {
+   
+  expect_named(adsl_test_data, c("TRT01A", "SEX", "perc"))
+  expect_equal(dim(adsl_test_data), c(4, 3))
+  
+  aggregate_perc <- aggregate(
+    x = adsl_test_data$perc, 
+    by=list(TRT01A=adsl_test_data$TRT01A), 
+    FUN=sum)
+  
+  expect_identical(aggregate_perc$x, c(100,100))
+})
 ```
 
-## 
+## Test Passed
